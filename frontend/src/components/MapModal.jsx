@@ -9,23 +9,45 @@ import {
   Compass, 
   Phone, 
   FileText,
-  Loader2
+  Loader2,
+  MessageSquare,
+  Edit3,
+  Search,
+  CheckCircle2,
+  RotateCcw
 } from 'lucide-react';
-import { extractLocationDetails } from '../utils/mapUtils';
+import { 
+  extractLocationDetails, 
+  generateWhatsAppLocationRequestUrl,
+  resolveExactCoordinates 
+} from '../utils/mapUtils';
 import { useToast } from '../context/ToastContext';
 import { adminApi } from '../services/api';
 
 const MapModal = ({ isOpen, onClose, order, customer }) => {
-  const { showSuccess } = useToast();
+  const { showSuccess, showInfo } = useToast();
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedAddress, setCopiedAddress] = useState(false);
   const [fullEntity, setFullEntity] = useState(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
 
-  const target = fullEntity || order || customer;
+  // Custom refinement state
+  const [isRefining, setIsRefining] = useState(false);
+  const [refineInput, setRefineInput] = useState('');
+  const [customOverride, setCustomOverride] = useState(null);
+  const [resolvingGeocode, setResolvingGeocode] = useState(false);
+
+  const baseTarget = fullEntity || order || customer;
+  // Apply any admin refinement
+  const target = customOverride ? { ...baseTarget, ...customOverride } : baseTarget;
 
   useEffect(() => {
-    // If opened with an order that is missing delivery_address or city, try hydrating from API
+    // Reset custom refinement when opening for a new entity
+    setCustomOverride(null);
+    setIsRefining(false);
+    setRefineInput('');
+
+    // If opened with an order that is missing delivery_address or city, hydrate from API
     if (isOpen && order && order.id && !order.delivery_address && !order.address) {
       let isMounted = true;
       setLoadingDetails(true);
@@ -51,12 +73,32 @@ const MapModal = ({ isOpen, onClose, order, customer }) => {
     }
   }, [isOpen, order]);
 
+  // Attempt live geocoding resolution if coordinates are missing
+  useEffect(() => {
+    if (!isOpen || !target) return;
+    const initialLoc = extractLocationDetails(target);
+    if (!initialLoc.hasCoordinates && initialLoc.street) {
+      let isMounted = true;
+      resolveExactCoordinates(initialLoc.street, initialLoc.city, initialLoc.pincode)
+        .then((geo) => {
+          if (isMounted && geo) {
+            setCustomOverride(prev => prev ? prev : { latitude: geo.lat, longitude: geo.lng });
+          }
+        });
+      return () => {
+        isMounted = false;
+      };
+    }
+  }, [isOpen, target]);
+
   if (!isOpen || !target) return null;
 
   const loc = extractLocationDetails(target);
   const identifier = target.order_number 
     ? `Order #${target.order_number}` 
     : target.id ? `Customer #${target.id}` : 'Customer Location';
+
+  const whatsAppUrl = generateWhatsAppLocationRequestUrl(loc.phone, loc.customerName, target.order_number || '');
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(loc.googleMapsUrl);
@@ -72,6 +114,51 @@ const MapModal = ({ isOpen, onClose, order, customer }) => {
     setTimeout(() => setCopiedAddress(false), 2000);
   };
 
+  // Handle Admin Manual Pin Refinement
+  const handleApplyRefinement = async (e) => {
+    e?.preventDefault();
+    if (!refineInput.trim()) return;
+
+    setResolvingGeocode(true);
+    // Check if input has coordinates (e.g., 17.4421, 78.3842)
+    const coordMatch = refineInput.match(/(-?\d{1,2}\.\d{3,9})\s*[,/ ]\s*(-?\d{1,3}\.\d{3,9})/);
+    if (coordMatch) {
+      const lat = parseFloat(coordMatch[1]);
+      const lng = parseFloat(coordMatch[2]);
+      setCustomOverride({ latitude: lat, longitude: lng });
+      setResolvingGeocode(false);
+      setIsRefining(false);
+      showSuccess(`Exact GPS location set to ${lat.toFixed(4)}, ${lng.toFixed(4)}!`);
+      return;
+    }
+
+    // Otherwise geocode the refined landmark or address
+    const geo = await resolveExactCoordinates(refineInput.trim(), loc.city, loc.pincode);
+    setResolvingGeocode(false);
+    if (geo) {
+      setCustomOverride({
+        delivery_address: `${loc.street} (${refineInput.trim()})`,
+        latitude: geo.lat,
+        longitude: geo.lng,
+      });
+      setIsRefining(false);
+      showSuccess(`Location resolved to exact coordinates: ${geo.lat.toFixed(4)}, ${geo.lng.toFixed(4)}`);
+    } else {
+      setCustomOverride({
+        delivery_address: `${refineInput.trim()}, ${loc.city}`,
+      });
+      setIsRefining(false);
+      showInfo('Map query updated with refined landmark.');
+    }
+  };
+
+  const handleResetRefinement = () => {
+    setCustomOverride(null);
+    setRefineInput('');
+    setIsRefining(false);
+    showInfo('Reset to customer provided address.');
+  };
+
   return (
     <div style={{
       position: 'fixed',
@@ -79,8 +166,8 @@ const MapModal = ({ isOpen, onClose, order, customer }) => {
       left: 0,
       right: 0,
       bottom: 0,
-      backgroundColor: 'rgba(15, 23, 42, 0.65)',
-      backdropFilter: 'blur(4px)',
+      backgroundColor: 'rgba(15, 23, 42, 0.7)',
+      backdropFilter: 'blur(5px)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -91,18 +178,18 @@ const MapModal = ({ isOpen, onClose, order, customer }) => {
         backgroundColor: '#ffffff',
         borderRadius: '16px',
         width: '100%',
-        maxWidth: '680px',
-        maxHeight: '90vh',
+        maxWidth: '720px',
+        maxHeight: '92vh',
         display: 'flex',
         flexDirection: 'column',
-        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.3)',
         overflow: 'hidden',
         border: '1px solid #e2e8f0',
         animation: 'fadeIn 0.2s ease-out',
       }}>
         {/* Header */}
         <div style={{
-          padding: '18px 22px',
+          padding: '16px 20px',
           borderBottom: '1px solid #e2e8f0',
           display: 'flex',
           alignItems: 'center',
@@ -124,8 +211,21 @@ const MapModal = ({ isOpen, onClose, order, customer }) => {
               <MapPin size={22} />
             </div>
             <div>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-                Customer Delivery Location
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span>Customer Delivery Location</span>
+                {loc.hasCoordinates && (
+                  <span style={{
+                    fontSize: '0.68rem',
+                    fontWeight: 700,
+                    backgroundColor: '#dcfce7',
+                    color: '#15803d',
+                    padding: '2px 8px',
+                    borderRadius: '12px',
+                    border: '1px solid #bbf7d0',
+                  }}>
+                    Exact Pin Active
+                  </span>
+                )}
               </h3>
               <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '2px' }}>
                 {identifier} • <strong style={{ color: '#334155' }}>{loc.customerName}</strong>
@@ -143,10 +243,10 @@ const MapModal = ({ isOpen, onClose, order, customer }) => {
         </div>
 
         {/* Body */}
-        <div style={{ padding: '20px 22px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div style={{ padding: '18px 20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '14px' }}>
           {/* Address Details Card */}
           <div style={{
-            padding: '16px 18px',
+            padding: '14px 16px',
             backgroundColor: '#f8fafc',
             borderRadius: '12px',
             border: '1px solid #e2e8f0',
@@ -154,11 +254,11 @@ const MapModal = ({ isOpen, onClose, order, customer }) => {
             flexDirection: 'column',
             gap: '10px',
           }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
-              <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', flex: 1, minWidth: '240px' }}>
                 <MapPin size={20} color="#ea580c" style={{ flexShrink: 0, marginTop: '2px' }} />
                 <div>
-                  <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#ea580c', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  <div style={{ fontSize: '0.725rem', fontWeight: 700, color: '#ea580c', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                     Delivery Address
                   </div>
                   <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#0f172a', marginTop: '2px', lineHeight: 1.4 }}>
@@ -172,54 +272,137 @@ const MapModal = ({ isOpen, onClose, order, customer }) => {
                   </div>
                   <div style={{ fontSize: '0.825rem', color: '#64748b', marginTop: '3px' }}>
                     {loc.city}{loc.pincode ? ` — Pincode: ${loc.pincode}` : ''}
+                    {loc.localityName && (
+                      <span style={{ marginLeft: '8px', color: '#0284c7', fontWeight: 600 }}>
+                        • Locality: {loc.localityName}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
 
-              {loc.hasCoordinates ? (
-                <span style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  backgroundColor: '#dcfce7',
-                  color: '#15803d',
-                  padding: '4px 10px',
-                  borderRadius: '6px',
-                  fontSize: '0.725rem',
-                  fontWeight: 700,
-                  whiteSpace: 'nowrap',
-                  border: '1px solid #bbf7d0',
-                }}>
-                  <Compass size={13} />
-                  GPS: {loc.lat.toFixed(4)}, {loc.lng.toFixed(4)}
-                </span>
-              ) : (
-                <span style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  backgroundColor: '#f1f5f9',
-                  color: '#475569',
-                  padding: '4px 10px',
-                  borderRadius: '6px',
-                  fontSize: '0.725rem',
-                  fontWeight: 600,
-                  whiteSpace: 'nowrap',
-                }}>
-                  <MapPin size={13} color="#ea580c" />
-                  Address Pinned
-                </span>
-              )}
+              {/* Accuracy Badge */}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' }}>
+                {loc.hasCoordinates ? (
+                  <span style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    backgroundColor: '#dcfce7',
+                    color: '#15803d',
+                    padding: '5px 10px',
+                    borderRadius: '8px',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    whiteSpace: 'nowrap',
+                    border: '1px solid #bbf7d0',
+                  }}>
+                    <Compass size={14} />
+                    GPS: {loc.lat.toFixed(4)}, {loc.lng.toFixed(4)}
+                  </span>
+                ) : (
+                  <span style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    backgroundColor: '#fef3c7',
+                    color: '#92400e',
+                    padding: '5px 10px',
+                    borderRadius: '8px',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    whiteSpace: 'nowrap',
+                    border: '1px solid #fde68a',
+                  }}>
+                    <MapPin size={13} color="#ea580c" />
+                    Street Matched
+                  </span>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => setIsRefining(!isRefining)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#0284c7',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: 0,
+                  }}
+                >
+                  <Edit3 size={12} />
+                  {isRefining ? 'Close Refine Pin' : 'Refine / Adjust Pin'}
+                </button>
+              </div>
             </div>
+
+            {/* Refine Pin Search Bar */}
+            {isRefining && (
+              <form onSubmit={handleApplyRefinement} style={{
+                marginTop: '8px',
+                padding: '10px 12px',
+                backgroundColor: '#ffffff',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+              }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#334155' }}>
+                  Enter exact landmark, building name, or paste Google Maps coordinates:
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <input
+                    type="text"
+                    placeholder="e.g. Near Apollo Pharmacy, Masab Tank OR 17.4014, 78.4516"
+                    value={refineInput}
+                    onChange={(e) => setRefineInput(e.target.value)}
+                    style={{
+                      flex: 1,
+                      padding: '8px 12px',
+                      fontSize: '0.825rem',
+                      borderRadius: '6px',
+                      border: '1px solid #cbd5e1',
+                    }}
+                  />
+                  <button
+                    type="submit"
+                    disabled={resolvingGeocode || !refineInput.trim()}
+                    className="btn btn-primary btn-sm"
+                    style={{ gap: '4px', whiteSpace: 'nowrap' }}
+                  >
+                    {resolvingGeocode ? <Loader2 size={13} className="spin" /> : <Search size={13} />}
+                    <span>Update Pin</span>
+                  </button>
+
+                  {customOverride && (
+                    <button
+                      type="button"
+                      onClick={handleResetRefinement}
+                      className="btn btn-outline btn-sm"
+                      title="Reset to original customer address"
+                    >
+                      <RotateCcw size={13} />
+                    </button>
+                  )}
+                </div>
+              </form>
+            )}
 
             {/* Extra context: Phone and Special Instructions */}
             <div style={{
               display: 'flex',
               flexWrap: 'wrap',
               gap: '16px',
-              paddingTop: '10px',
+              paddingTop: '8px',
               borderTop: '1px solid #e2e8f0',
               fontSize: '0.825rem',
+              alignItems: 'center',
             }}>
               {loc.phone && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#334155' }}>
@@ -231,8 +414,33 @@ const MapModal = ({ isOpen, onClose, order, customer }) => {
                 </div>
               )}
 
+              {/* 1-Click WhatsApp Location Request */}
+              {whatsAppUrl && (
+                <a
+                  href={whatsAppUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    backgroundColor: '#25d366',
+                    color: '#ffffff',
+                    padding: '3px 9px',
+                    borderRadius: '6px',
+                    textDecoration: 'none',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                  }}
+                  title="Send message on WhatsApp asking customer for their Live Location pin"
+                >
+                  <MessageSquare size={13} />
+                  <span>Request WhatsApp Live Location</span>
+                </a>
+              )}
+
               {loc.specialInstructions && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#7c2d12' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#7c2d12', flex: 1 }}>
                   <FileText size={14} color="#ea580c" />
                   <strong>Note:</strong> {loc.specialInstructions}
                 </div>
@@ -240,7 +448,7 @@ const MapModal = ({ isOpen, onClose, order, customer }) => {
             </div>
           </div>
 
-          {/* Embedded Google Map */}
+          {/* Embedded Google Map with High-Precision Zoom */}
           <div style={{
             position: 'relative',
             width: '100%',

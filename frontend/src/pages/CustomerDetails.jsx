@@ -16,13 +16,14 @@ import {
   Navigation,
   Copy,
   Check,
-  Compass
+  Compass,
+  MessageSquare
 } from 'lucide-react';
 import StatusBadge from '../components/StatusBadge';
 import MapModal from '../components/MapModal';
 import { adminApi } from '../services/api';
 import { useToast } from '../context/ToastContext';
-import { extractLocationDetails } from '../utils/mapUtils';
+import { extractLocationDetails, generateWhatsAppLocationRequestUrl } from '../utils/mapUtils';
 
 const CustomerDetails = () => {
   const { id } = useParams();
@@ -216,6 +217,20 @@ const CustomerDetails = () => {
           </div>
 
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            {customer?.phone && (
+              <a
+                href={generateWhatsAppLocationRequestUrl(customer.phone, customer.name)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-outline btn-sm"
+                style={{ gap: '6px', color: '#16a34a', borderColor: '#bbf7d0', backgroundColor: '#f0fdf4', textDecoration: 'none' }}
+                title="Send WhatsApp message asking customer for live location pin"
+              >
+                <MessageSquare size={14} />
+                <span>WhatsApp Live Pin</span>
+              </a>
+            )}
+
             <button
               onClick={handleCopyAddress}
               className="btn btn-outline btn-sm"
@@ -276,7 +291,7 @@ const CustomerDetails = () => {
                     fontSize: '0.7rem',
                     fontWeight: 700,
                   }}>
-                    <Compass size={11} /> GPS Pinned
+                    <Compass size={11} /> GPS: {loc.lat.toFixed(4)}, {loc.lng.toFixed(4)}
                   </span>
                 ) : (
                   <span style={{
@@ -299,9 +314,14 @@ const CustomerDetails = () => {
                 {resolvedAddress || 'No primary street address registered'}
               </div>
 
-              <div style={{ fontSize: '0.85rem', color: '#64748b', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+              <div style={{ fontSize: '0.85rem', color: '#64748b', display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
                 <span><strong>City:</strong> {resolvedCity}</span>
                 {resolvedPincode && <span><strong>Pincode:</strong> {resolvedPincode}</span>}
+                {loc.localityName && (
+                  <span style={{ color: '#0284c7', fontWeight: 600 }}>
+                    <strong>Locality:</strong> {loc.localityName}
+                  </span>
+                )}
                 <span><strong>State:</strong> Telangana, India</span>
               </div>
             </div>

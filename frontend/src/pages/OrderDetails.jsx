@@ -19,13 +19,14 @@ import {
   ExternalLink,
   Navigation,
   Copy,
-  Compass
+  Compass,
+  MessageSquare
 } from 'lucide-react';
 import StatusBadge from '../components/StatusBadge';
 import ConfirmModal from '../components/ConfirmModal';
 import { adminApi } from '../services/api';
 import { useToast } from '../context/ToastContext';
-import { extractLocationDetails } from '../utils/mapUtils';
+import { extractLocationDetails, generateWhatsAppLocationRequestUrl } from '../utils/mapUtils';
 
 const TIMELINE_STEPS = [
   { key: 'PENDING', label: 'Order Placed', desc: 'Customer confirmed cart' },
@@ -435,6 +436,11 @@ const OrderDetails = () => {
                     <div style={{ fontWeight: 600, color: '#1e293b' }}>{order.delivery_address}</div>
                     <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '2px' }}>
                       {order.city || 'Hyderabad'}, Pincode: {order.pincode || '500001'}
+                      {loc.localityName && (
+                        <span style={{ marginLeft: '8px', color: '#0284c7', fontWeight: 600 }}>
+                          • Locality: {loc.localityName}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -462,7 +468,7 @@ const OrderDetails = () => {
                   />
                 </div>
 
-                {/* Action Buttons: Open in Google Maps, Get Directions, Copy Link */}
+                {/* Action Buttons: Open in Google Maps, Get Directions, Copy Link, WhatsApp Request */}
                 <div style={{
                   display: 'flex',
                   gap: '8px',
@@ -490,6 +496,26 @@ const OrderDetails = () => {
                     <Navigation size={14} />
                     <span>Get Directions</span>
                   </a>
+
+                  {loc.phone && (
+                    <a
+                      href={generateWhatsAppLocationRequestUrl(loc.phone, loc.customerName, order.order_number)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn btn-outline btn-sm"
+                      style={{
+                        textDecoration: 'none',
+                        gap: '6px',
+                        borderColor: '#22c55e',
+                        color: '#16a34a',
+                        backgroundColor: '#f0fdf4',
+                      }}
+                      title="Request customer to share live location on WhatsApp"
+                    >
+                      <MessageSquare size={14} />
+                      <span>WhatsApp Live Pin</span>
+                    </a>
+                  )}
 
                   <button
                     type="button"
