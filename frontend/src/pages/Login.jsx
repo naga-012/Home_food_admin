@@ -37,12 +37,6 @@ const Login = () => {
     setErrorMessage('');
   };
 
-  const fillDemoAdmin = () => {
-    setEmail('admin@intiruchi.com');
-    setPassword('admin123');
-    setErrorMessage('');
-  };
-
   return (
     <div style={{
       minHeight: '100vh',
@@ -158,7 +152,7 @@ const Login = () => {
               <input
                 type="email"
                 required
-                placeholder="myakalanagarjun09@gmail.com"
+                placeholder="admin@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="form-input"
@@ -216,55 +210,27 @@ const Login = () => {
           </button>
         </form>
 
-        {/* Quick Fill helper */}
-        <div style={{
-          marginTop: '28px',
-          padding: '16px',
-          backgroundColor: '#1e293b',
-          borderRadius: '12px',
-          border: '1px dashed #334155',
-          textAlign: 'center',
-        }}>
-          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-            Nagarjun Admin Credentials
-          </div>
-          <div style={{ fontSize: '0.8rem', color: '#cbd5e1', marginTop: '4px' }}>
-            <code>myakalanagarjun09@gmail.com</code> / <code>naga@012</code>
-          </div>
-          <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginTop: '10px' }}>
-            <button
-              type="button"
-              onClick={fillNagarjunAdmin}
-              style={{
-                background: '#ea580c',
-                border: 'none',
-                borderRadius: '6px',
-                color: '#ffffff',
-                fontSize: '0.775rem',
-                fontWeight: 700,
-                padding: '6px 14px',
-                cursor: 'pointer',
-              }}
-            >
-              ⚡ Auto-Fill Nagarjun
-            </button>
-            <button
-              type="button"
-              onClick={fillDemoAdmin}
-              style={{
-                background: 'transparent',
-                border: '1px solid #64748b',
-                borderRadius: '6px',
-                color: '#94a3b8',
-                fontSize: '0.775rem',
-                fontWeight: 600,
-                padding: '6px 10px',
-                cursor: 'pointer',
-              }}
-            >
-              Demo Admin
-            </button>
-          </div>
+        {/* Discreet Auto-Fill */}
+        <div style={{ marginTop: '24px', textAlign: 'center' }}>
+          <button
+            type="button"
+            onClick={fillNagarjunAdmin}
+            style={{
+              background: 'transparent',
+              border: '1px solid #334155',
+              borderRadius: '8px',
+              color: '#94a3b8',
+              fontSize: '0.78rem',
+              fontWeight: 600,
+              padding: '8px 18px',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = '#ea580c'; e.currentTarget.style.borderColor = '#ea580c'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = '#94a3b8'; e.currentTarget.style.borderColor = '#334155'; }}
+          >
+            ⚡ Auto-Fill Saved Credentials
+          </button>
         </div>
       </div>
     </div>
