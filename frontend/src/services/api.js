@@ -1,6 +1,14 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+const rawApiUrl = (import.meta.env.VITE_API_URL || 'https://inti-ruchi-backend.onrender.com').trim();
+let trimmedApiUrl = rawApiUrl.replace(/\/+$/, '');
+if (trimmedApiUrl && !trimmedApiUrl.includes('.') && !trimmedApiUrl.includes('localhost') && !trimmedApiUrl.includes('127.0.0.1')) {
+  trimmedApiUrl = `${trimmedApiUrl}.onrender.com`;
+}
+if (trimmedApiUrl && !trimmedApiUrl.startsWith('http://') && !trimmedApiUrl.startsWith('https://')) {
+  trimmedApiUrl = `https://${trimmedApiUrl}`;
+}
+export const API_BASE_URL = trimmedApiUrl;
 
 const api = axios.create({
   baseURL: API_BASE_URL,

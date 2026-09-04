@@ -12,3 +12,6 @@ services:
       - path: /*
         name: Cache-Control
         value: no-cache
+    envVars:
+      - key: VITE_API_URL
+        value: https://inti-ruchi-backend.onrender.com

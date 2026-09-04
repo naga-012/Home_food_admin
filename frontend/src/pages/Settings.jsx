@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { API_BASE_URL } from '../services/api';
 
 const Settings = () => {
   const { 
@@ -147,22 +148,17 @@ const Settings = () => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
             <span style={{ color: '#64748b' }}>Backend Server:</span>
-            <span style={{ fontWeight: 700, fontFamily: 'monospace' }}>http://127.0.0.1:8000</span>
+            <span style={{ fontWeight: 700, fontFamily: 'monospace', color: '#0284c7' }}>{API_BASE_URL}</span>
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
-            <span style={{ color: '#64748b' }}>Customer App Port:</span>
-            <span style={{ fontWeight: 700, fontFamily: 'monospace' }}>http://localhost:5173</span>
-          </div>
-
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
-            <span style={{ color: '#64748b' }}>Admin Portal Port:</span>
-            <span style={{ fontWeight: 700, fontFamily: 'monospace' }}>http://localhost:5174</span>
+            <span style={{ color: '#64748b' }}>Customer App:</span>
+            <span style={{ fontWeight: 700, fontFamily: 'monospace' }}>https://inti-ruchi-frontend.onrender.com</span>
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
             <span style={{ color: '#64748b' }}>Database Engine:</span>
-            <span style={{ fontWeight: 700, color: '#16a34a' }}>Unified SQLite (intiruchi.db) · Single Source of Truth</span>
+            <span style={{ fontWeight: 700, color: '#16a34a' }}>Unified PostgreSQL Database · Single Source of Truth</span>
           </div>
         </div>
       </div>
