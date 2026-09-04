@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, Check, X, ArrowRight, MapPin } from 'lucide-react';
+import { Eye, Check, X, ArrowRight, MapPin, Phone } from 'lucide-react';
 import StatusBadge from './StatusBadge';
 import MapModal from './MapModal';
 
@@ -20,7 +20,7 @@ const OrderTable = ({
         {[1, 2, 3, 4, 5].map((i) => (
           <div key={i} style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
             <div className="skeleton" style={{ height: '36px', width: '120px' }} />
-            <div className="skeleton" style={{ height: '36px', width: '160px' }} />
+            <div className="skeleton" style={{ height: '36px', width: '180px' }} />
             <div className="skeleton" style={{ height: '36px', flex: 1 }} />
             <div className="skeleton" style={{ height: '36px', width: '90px' }} />
             <div className="skeleton" style={{ height: '36px', width: '100px' }} />
@@ -49,7 +49,7 @@ const OrderTable = ({
         <thead>
           <tr>
             <th>Order ID</th>
-            <th>Customer</th>
+            <th>Customer & Delivery Location</th>
             <th>Food Items</th>
             <th>Amount</th>
             <th>Payment</th>
@@ -72,6 +72,10 @@ const OrderTable = ({
               minute: '2-digit',
             });
 
+            const deliverySnippet = order.delivery_address || order.address || 'Address on file';
+            const citySnippet = order.city ? `${order.city}` : 'Hyderabad';
+            const pincodeSnippet = order.pincode ? ` - ${order.pincode}` : '';
+
             return (
               <tr key={order.id} style={{
                 backgroundColor: order.order_status === 'PENDING' ? '#fffbf5' : 'transparent',
@@ -83,39 +87,87 @@ const OrderTable = ({
                   </div>
                 </td>
 
-                {/* Customer */}
-                <td>
-                  <div style={{ fontWeight: 600, color: '#1e293b' }}>
-                    {order.customer?.name || 'Customer'}
+                {/* Customer & Delivery Location */}
+                <td style={{ minWidth: '220px', maxWidth: '280px' }}>
+                  <div style={{ fontWeight: 700, color: '#0f172a' }}>
+                    {order.customer?.name || order.customer_name || 'Customer'}
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                    {order.phone || order.customer?.phone || '—'}
+                  
+                  <div style={{ fontSize: '0.75rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '1px' }}>
+                    <Phone size={11} color="#64748b" />
+                    <span>{order.phone || order.customer?.phone || '—'}</span>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedMapOrder(order)}
-                    style={{
-                      display: 'inline-flex',
+
+                  {/* Delivery Location snippet */}
+                  <div style={{
+                    marginTop: '6px',
+                    padding: '4px 8px',
+                    backgroundColor: '#f8fafc',
+                    borderRadius: '6px',
+                    border: '1px solid #e2e8f0',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '2px',
+                  }}>
+                    <div style={{
+                      display: 'flex',
                       alignItems: 'center',
-                      gap: '4px',
-                      fontSize: '0.725rem',
-                      color: '#ea580c',
-                      background: 'none',
-                      border: 'none',
-                      padding: 0,
-                      marginTop: '3px',
-                      cursor: 'pointer',
-                      fontWeight: 600,
-                    }}
-                    title="Click to view Customer Google Map location"
-                  >
-                    <MapPin size={12} />
-                    <span>View on Map</span>
-                  </button>
+                      justifyContent: 'space-between',
+                      gap: '6px',
+                    }}>
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        overflow: 'hidden',
+                        color: '#1e293b',
+                        fontWeight: 600,
+                        fontSize: '0.75rem',
+                      }}>
+                        <MapPin size={12} color="#ea580c" style={{ flexShrink: 0 }} />
+                        <span 
+                          title={`${deliverySnippet}, ${citySnippet}${pincodeSnippet}`}
+                          style={{
+                            textOverflow: 'ellipsis',
+                            overflow: 'hidden',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {deliverySnippet}
+                        </span>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => setSelectedMapOrder(order)}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '3px',
+                          fontSize: '0.7rem',
+                          color: '#ea580c',
+                          background: '#ffedd5',
+                          border: 'none',
+                          padding: '2px 6px',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          fontWeight: 700,
+                          flexShrink: 0,
+                        }}
+                        title="Click to view Customer Google Map location"
+                      >
+                        Map
+                      </button>
+                    </div>
+
+                    <div style={{ fontSize: '0.7rem', color: '#64748b', paddingLeft: '16px' }}>
+                      {citySnippet}{pincodeSnippet}
+                    </div>
+                  </div>
                 </td>
 
                 {/* Items */}
-                <td style={{ maxWidth: '240px' }}>
+                <td style={{ maxWidth: '220px' }}>
                   <div 
                     title={itemsSummary}
                     style={{
@@ -123,6 +175,7 @@ const OrderTable = ({
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
                       color: '#334155',
+                      fontSize: '0.85rem',
                     }}
                   >
                     {itemsSummary}

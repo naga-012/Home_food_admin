@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Users, ShieldAlert, ShieldCheck, Eye, Ban } from 'lucide-react';
+import { Search, Users, ShieldAlert, ShieldCheck, Eye, Ban, MapPin } from 'lucide-react';
 import { adminApi } from '../services/api';
 import { useToast } from '../context/ToastContext';
 import ConfirmModal from '../components/ConfirmModal';
+import MapModal from '../components/MapModal';
 
 const Customers = () => {
   const [customers, setCustomers] = useState([]);
@@ -11,6 +12,7 @@ const Customers = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [blockModalOpen, setBlockModalOpen] = useState(false);
   const [selectedCust, setSelectedCust] = useState(null);
+  const [selectedMapCustomer, setSelectedMapCustomer] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
 
   const navigate = useNavigate();
@@ -59,15 +61,15 @@ const Customers = () => {
             Customer Management
           </h2>
           <p style={{ fontSize: '0.85rem', color: '#64748b' }}>
-            View customer registered accounts, lifetime ordering metrics, and manage access
+            View customer registered accounts, locations, ordering metrics, and manage access
           </p>
         </div>
 
-        <div style={{ position: 'relative', width: '300px' }}>
+        <div style={{ position: 'relative', width: '320px' }}>
           <Search size={16} color="#94a3b8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
           <input
             type="text"
-            placeholder="Search by customer name, email, phone..."
+            placeholder="Search customer, location, phone..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="form-input"
@@ -83,7 +85,7 @@ const Customers = () => {
             <tr>
               <th>Customer</th>
               <th>Phone</th>
-              <th>City</th>
+              <th>Location & Address</th>
               <th>Orders</th>
               <th>Total Spending</th>
               <th>Status</th>
@@ -107,18 +109,64 @@ const Customers = () => {
             ) : (
               customers.map((c) => (
                 <tr key={c.id}>
+                  {/* Customer Info */}
                   <td>
                     <div style={{ fontWeight: 700, color: '#0f172a' }}>{c.name}</div>
                     <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{c.email}</div>
                   </td>
+
+                  {/* Phone */}
                   <td>{c.phone || '—'}</td>
-                  <td>{c.city || 'Hyderabad'}</td>
+
+                  {/* Location & Address */}
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
+                      <MapPin size={14} color="#ea580c" style={{ flexShrink: 0, marginTop: '3px' }} />
+                      <div>
+                        <div style={{
+                          fontWeight: 600,
+                          color: '#1e293b',
+                          fontSize: '0.85rem',
+                          maxWidth: '220px',
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                        }}>
+                          {c.address || c.city || 'Hyderabad'}
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span>{c.city || 'Hyderabad'}</span>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedMapCustomer(c)}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              padding: 0,
+                              color: '#ea580c',
+                              cursor: 'pointer',
+                              fontWeight: 700,
+                              fontSize: '0.725rem',
+                            }}
+                          >
+                            • Map
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+
+                  {/* Orders */}
                   <td>
                     <span style={{ fontWeight: 700, color: '#0f172a' }}>{c.total_orders}</span>
                   </td>
+
+                  {/* Total Spending */}
                   <td>
                     <span style={{ fontWeight: 800, color: '#ea580c' }}>₹{c.total_spending?.toFixed(0)}</span>
                   </td>
+
+                  {/* Status */}
                   <td>
                     <span style={{
                       display: 'inline-flex',
@@ -135,11 +183,25 @@ const Customers = () => {
                       <span>{c.is_active ? 'Active' : 'Blocked'}</span>
                     </span>
                   </td>
+
+                  {/* Joined Date */}
                   <td style={{ fontSize: '0.8rem', color: '#64748b' }}>
                     {new Date(c.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                   </td>
+
+                  {/* Actions */}
                   <td style={{ textAlign: 'right' }}>
-                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                    <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedMapCustomer(c)}
+                        className="btn btn-outline btn-sm"
+                        style={{ padding: '5px 8px', color: '#ea580c', borderColor: '#fed7aa' }}
+                        title="View Customer Location on Map"
+                      >
+                        <MapPin size={13} />
+                      </button>
+
                       <button
                         onClick={() => navigate(`/admin/customers/${c.id}`)}
                         className="btn btn-outline btn-sm"
@@ -166,6 +228,13 @@ const Customers = () => {
           </tbody>
         </table>
       </div>
+
+      {/* Customer Location Modal */}
+      <MapModal
+        isOpen={!!selectedMapCustomer}
+        onClose={() => setSelectedMapCustomer(null)}
+        customer={selectedMapCustomer}
+      />
 
       <ConfirmModal
         isOpen={blockModalOpen}

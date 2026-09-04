@@ -361,7 +361,7 @@ const Dashboard = () => {
               <thead>
                 <tr>
                   <th>Order #</th>
-                  <th>Customer</th>
+                  <th>Customer & Delivery Address</th>
                   <th>Amount</th>
                   <th>Payment</th>
                   <th>Status</th>
@@ -379,35 +379,57 @@ const Dashboard = () => {
                     minute: '2-digit',
                   });
 
+                  const deliveryAddress = ord.delivery_address || ord.address || '';
+                  const city = ord.city || 'Hyderabad';
+
                   return (
                     <tr key={ord.id}>
                       <td style={{ fontWeight: 800, fontFamily: 'monospace' }}>
                         #{ord.order_number}
                       </td>
-                      <td>
-                        <div style={{ fontWeight: 600 }}>{ord.customer_name}</div>
-                        <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{ord.customer_phone}</div>
-                        <button
-                          type="button"
-                          onClick={() => setSelectedMapOrder(ord)}
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                            fontSize: '0.725rem',
-                            color: '#ea580c',
-                            background: 'none',
-                            border: 'none',
-                            padding: 0,
-                            marginTop: '3px',
-                            cursor: 'pointer',
-                            fontWeight: 600,
-                          }}
-                          title="View Customer on Google Maps"
-                        >
-                          <MapPin size={12} />
-                          <span>Map Location</span>
-                        </button>
+                      <td style={{ minWidth: '220px', maxWidth: '280px' }}>
+                        <div style={{ fontWeight: 700, color: '#0f172a' }}>{ord.customer_name}</div>
+                        <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{ord.customer_phone || '—'}</div>
+                        <div style={{
+                          marginTop: '4px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          fontSize: '0.75rem',
+                          color: '#334155',
+                        }}>
+                          <MapPin size={13} color="#ea580c" style={{ flexShrink: 0 }} />
+                          <span style={{
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            maxWidth: '160px',
+                            fontWeight: 500,
+                          }}>
+                            {deliveryAddress || city}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedMapOrder(ord)}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '2px',
+                              fontSize: '0.7rem',
+                              color: '#ea580c',
+                              background: '#ffedd5',
+                              border: 'none',
+                              padding: '1px 6px',
+                              borderRadius: '4px',
+                              cursor: 'pointer',
+                              fontWeight: 700,
+                              flexShrink: 0,
+                            }}
+                            title="View Customer Location on Google Maps"
+                          >
+                            Map
+                          </button>
+                        </div>
                       </td>
                       <td style={{ fontWeight: 800 }}>
                         ₹{ord.total_amount?.toFixed(0)}
