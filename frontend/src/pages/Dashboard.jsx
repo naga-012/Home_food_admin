@@ -12,11 +12,13 @@ import {
   Users, 
   ArrowRight,
   TrendingUp,
-  AlertCircle
+  AlertCircle,
+  MapPin
 } from 'lucide-react';
 import StatCard from '../components/StatCard';
 import StatusBadge from '../components/StatusBadge';
 import ConfirmModal from '../components/ConfirmModal';
+import MapModal from '../components/MapModal';
 import { adminApi } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -28,6 +30,7 @@ const Dashboard = () => {
   const [actionLoadingId, setActionLoadingId] = useState(null);
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [orderToReject, setOrderToReject] = useState(null);
+  const [selectedMapOrder, setSelectedMapOrder] = useState(null);
 
   const { autoRefresh, setPendingCount } = useAuth();
   const { showSuccess, showError } = useToast();
@@ -384,6 +387,27 @@ const Dashboard = () => {
                       <td>
                         <div style={{ fontWeight: 600 }}>{ord.customer_name}</div>
                         <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{ord.customer_phone}</div>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedMapOrder(ord)}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            fontSize: '0.725rem',
+                            color: '#ea580c',
+                            background: 'none',
+                            border: 'none',
+                            padding: 0,
+                            marginTop: '3px',
+                            cursor: 'pointer',
+                            fontWeight: 600,
+                          }}
+                          title="View Customer on Google Maps"
+                        >
+                          <MapPin size={12} />
+                          <span>Map Location</span>
+                        </button>
                       </td>
                       <td style={{ fontWeight: 800 }}>
                         ₹{ord.total_amount?.toFixed(0)}
@@ -413,6 +437,15 @@ const Dashboard = () => {
                             className="btn btn-outline btn-sm"
                           >
                             View
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedMapOrder(ord)}
+                            className="btn btn-outline btn-sm"
+                            style={{ padding: '5px 8px', color: '#ea580c', borderColor: '#fed7aa' }}
+                            title="View Customer on Google Maps"
+                          >
+                            <MapPin size={14} />
                           </button>
                           {ord.order_status === 'PENDING' && (
                             <>
@@ -457,6 +490,13 @@ const Dashboard = () => {
           setRejectModalOpen(false);
           setOrderToReject(null);
         }}
+      />
+
+      {/* Customer Google Location Modal */}
+      <MapModal
+        isOpen={!!selectedMapOrder}
+        onClose={() => setSelectedMapOrder(null)}
+        order={selectedMapOrder}
       />
     </div>
   );

@@ -11,11 +11,13 @@ import {
   XCircle, 
   IndianRupee,
   Calendar,
-  Eye
+  Eye,
+  ExternalLink
 } from 'lucide-react';
 import StatusBadge from '../components/StatusBadge';
 import { adminApi } from '../services/api';
 import { useToast } from '../context/ToastContext';
+import { extractLocationDetails } from '../utils/mapUtils';
 
 const CustomerDetails = () => {
   const { id } = useParams();
@@ -118,6 +120,26 @@ const CustomerDetails = () => {
           <div>
             <div style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 600 }}>Delivery Address</div>
             <div style={{ fontWeight: 600, color: '#1e293b' }}>{customer.address || '—'}</div>
+            {customer.address && (
+              <a
+                href={extractLocationDetails(customer).googleMapsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  fontSize: '0.75rem',
+                  color: '#ea580c',
+                  marginTop: '4px',
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                }}
+              >
+                <ExternalLink size={12} />
+                <span>View on Google Maps</span>
+              </a>
+            )}
           </div>
           <div>
             <div style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 600 }}>City & Pincode</div>

@@ -15,12 +15,17 @@ import {
   PackageCheck,
   Printer,
   Calendar,
-  AlertCircle
+  AlertCircle,
+  ExternalLink,
+  Navigation,
+  Copy,
+  Compass
 } from 'lucide-react';
 import StatusBadge from '../components/StatusBadge';
 import ConfirmModal from '../components/ConfirmModal';
 import { adminApi } from '../services/api';
 import { useToast } from '../context/ToastContext';
+import { extractLocationDetails } from '../utils/mapUtils';
 
 const TIMELINE_STEPS = [
   { key: 'PENDING', label: 'Order Placed', desc: 'Customer confirmed cart' },
@@ -38,7 +43,15 @@ const OrderDetails = () => {
   const [actionLoading, setActionLoading] = useState(false);
 
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
+  const [copiedLocation, setCopiedLocation] = useState(false);
   const { showSuccess, showError } = useToast();
+
+  const handleCopyLocation = (url) => {
+    navigator.clipboard.writeText(url);
+    setCopiedLocation(true);
+    showSuccess('Google Maps location link copied to clipboard!');
+    setTimeout(() => setCopiedLocation(false), 2000);
+  };
 
   const fetchOrder = async () => {
     try {
@@ -366,35 +379,145 @@ const OrderDetails = () => {
             </div>
           </div>
 
-          {/* Delivery Address Card */}
-          <div className="card" style={{ padding: '24px' }}>
-            <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '16px', color: '#0f172a' }}>
-              Delivery Address
-            </h3>
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <MapPin size={20} color="#ea580c" style={{ flexShrink: 0, marginTop: '2px' }} />
-              <div>
-                <div style={{ fontWeight: 600, color: '#1e293b' }}>{order.delivery_address}</div>
-                <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '2px' }}>
-                  {order.city || 'Hyderabad'}, Pincode: {order.pincode || '500001'}
+          {/* Customer Delivery & Google Location Card */}
+          {(() => {
+            const loc = extractLocationDetails(order);
+            return (
+              <div className="card" style={{ padding: '24px' }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: '16px',
+                  flexWrap: 'wrap',
+                  gap: '8px',
+                }}>
+                  <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                    Customer Google Location & Delivery
+                  </h3>
+                  {loc.hasCoordinates ? (
+                    <span style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      backgroundColor: '#dcfce7',
+                      color: '#15803d',
+                      padding: '3px 8px',
+                      borderRadius: '6px',
+                      fontSize: '0.725rem',
+                      fontWeight: 700,
+                      border: '1px solid #bbf7d0',
+                    }}>
+                      <Compass size={12} />
+                      GPS: {loc.lat.toFixed(4)}, {loc.lng.toFixed(4)}
+                    </span>
+                  ) : (
+                    <span style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      backgroundColor: '#f1f5f9',
+                      color: '#475569',
+                      padding: '3px 8px',
+                      borderRadius: '6px',
+                      fontSize: '0.725rem',
+                      fontWeight: 600,
+                    }}>
+                      <MapPin size={12} />
+                      Address Pinned
+                    </span>
+                  )}
                 </div>
-              </div>
-            </div>
 
-            {order.special_instructions && (
-              <div style={{
-                marginTop: '16px',
-                padding: '12px',
-                backgroundColor: '#fef3c7',
-                borderRadius: '8px',
-                border: '1px solid #fde68a',
-                fontSize: '0.825rem',
-                color: '#92400e',
-              }}>
-                <strong>Special Instructions:</strong> {order.special_instructions}
+                <div style={{ display: 'flex', gap: '12px', marginBottom: '14px' }}>
+                  <MapPin size={20} color="#ea580c" style={{ flexShrink: 0, marginTop: '2px' }} />
+                  <div>
+                    <div style={{ fontWeight: 600, color: '#1e293b' }}>{order.delivery_address}</div>
+                    <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '2px' }}>
+                      {order.city || 'Hyderabad'}, Pincode: {order.pincode || '500001'}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Embedded Live Google Map */}
+                <div style={{
+                  position: 'relative',
+                  width: '100%',
+                  height: '240px',
+                  borderRadius: '12px',
+                  overflow: 'hidden',
+                  border: '1px solid #cbd5e1',
+                  marginBottom: '14px',
+                  backgroundColor: '#f1f5f9',
+                }}>
+                  <iframe
+                    title="Customer Delivery Google Map"
+                    width="100%"
+                    height="100%"
+                    style={{ border: 0 }}
+                    loading="lazy"
+                    allowFullScreen
+                    referrerPolicy="no-referrer-when-downgrade"
+                    src={loc.googleMapsEmbedUrl}
+                  />
+                </div>
+
+                {/* Action Buttons: Open in Google Maps, Get Directions, Copy Link */}
+                <div style={{
+                  display: 'flex',
+                  gap: '8px',
+                  flexWrap: 'wrap',
+                  marginBottom: order.special_instructions ? '14px' : '0',
+                }}>
+                  <a
+                    href={loc.googleMapsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-primary btn-sm"
+                    style={{ textDecoration: 'none', gap: '6px' }}
+                  >
+                    <ExternalLink size={14} />
+                    <span>Open in Google Maps</span>
+                  </a>
+
+                  <a
+                    href={loc.directionsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-outline btn-sm"
+                    style={{ textDecoration: 'none', gap: '6px', color: '#0284c7', borderColor: '#0284c7' }}
+                  >
+                    <Navigation size={14} />
+                    <span>Get Directions</span>
+                  </a>
+
+                  <button
+                    type="button"
+                    onClick={() => handleCopyLocation(loc.googleMapsUrl)}
+                    className="btn btn-outline btn-sm"
+                    style={{ gap: '6px' }}
+                  >
+                    {copiedLocation ? <Check size={14} color="#16a34a" /> : <Copy size={14} />}
+                    <span>{copiedLocation ? 'Copied!' : 'Copy Location Link'}</span>
+                  </button>
+                </div>
+
+                {order.special_instructions && (
+                  <div style={{
+                    marginTop: '12px',
+                    padding: '12px',
+                    backgroundColor: '#fef3c7',
+                    borderRadius: '8px',
+                    border: '1px solid #fde68a',
+                    fontSize: '0.825rem',
+                    color: '#92400e',
+                  }}>
+                    <strong>Special Instructions:</strong> {order.special_instructions}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+            );
+          })()}
 
           {/* Payment Details */}
           <div className="card" style={{ padding: '24px' }}>

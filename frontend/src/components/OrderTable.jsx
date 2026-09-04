@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, Check, X, ArrowRight } from 'lucide-react';
+import { Eye, Check, X, ArrowRight, MapPin } from 'lucide-react';
 import StatusBadge from './StatusBadge';
+import MapModal from './MapModal';
 
 const OrderTable = ({
   orders = [],
@@ -11,6 +12,7 @@ const OrderTable = ({
   actionLoadingId = null,
 }) => {
   const navigate = useNavigate();
+  const [selectedMapOrder, setSelectedMapOrder] = useState(null);
 
   if (loading && orders.length === 0) {
     return (
@@ -89,6 +91,27 @@ const OrderTable = ({
                   <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
                     {order.phone || order.customer?.phone || '—'}
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedMapOrder(order)}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      fontSize: '0.725rem',
+                      color: '#ea580c',
+                      background: 'none',
+                      border: 'none',
+                      padding: 0,
+                      marginTop: '3px',
+                      cursor: 'pointer',
+                      fontWeight: 600,
+                    }}
+                    title="Click to view Customer Google Map location"
+                  >
+                    <MapPin size={12} />
+                    <span>View on Map</span>
+                  </button>
                 </td>
 
                 {/* Items */}
@@ -162,6 +185,17 @@ const OrderTable = ({
                       <span>View</span>
                     </button>
 
+                    {/* Google Location Map Button */}
+                    <button
+                      type="button"
+                      onClick={() => setSelectedMapOrder(order)}
+                      className="btn btn-outline btn-sm"
+                      style={{ padding: '5px 8px', color: '#ea580c', borderColor: '#fed7aa' }}
+                      title="View Customer on Google Maps"
+                    >
+                      <MapPin size={14} />
+                    </button>
+
                     {/* Pending Action Buttons */}
                     {order.order_status === 'PENDING' && (
                       <>
@@ -204,6 +238,13 @@ const OrderTable = ({
           })}
         </tbody>
       </table>
+
+      {/* Quick Customer Google Location Modal */}
+      <MapModal
+        isOpen={!!selectedMapOrder}
+        onClose={() => setSelectedMapOrder(null)}
+        order={selectedMapOrder}
+      />
     </div>
   );
 };
